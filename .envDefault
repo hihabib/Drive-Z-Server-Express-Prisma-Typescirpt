@@ -1,0 +1,1 @@
+DATABASE_URL="mongodb://YOUR_USERNAME:YOUR_PASSWORD@localhost:27017/allUser?authSource=admin&directConnection=true"

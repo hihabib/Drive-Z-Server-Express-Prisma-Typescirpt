@@ -1,0 +1,1 @@
+export const authPrivateKey = "123456879";
