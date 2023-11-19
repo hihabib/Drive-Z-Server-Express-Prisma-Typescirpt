@@ -63,7 +63,7 @@ model Directory {
   // Relations
   file            File[]
   parentDir       Directory?  @relation("nestedDirChain", fields: [parentDirId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  parentDirId     String?     @unique @db.ObjectId
+  parentDirId     String?     @db.ObjectId
   childDir        Directory[] @relation("nestedDirChain")
 }
 

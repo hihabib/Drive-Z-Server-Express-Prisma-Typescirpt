@@ -5,6 +5,7 @@ import { type IFileAndDirectory } from "../utils/fileSystem";
 import fs from "fs/promises";
 import path from "path";
 import { PrismaClient } from "@prisma/client";
+import { type FolderInformation } from "../model/structure";
 
 const prisma = new PrismaClient();
 
@@ -34,20 +35,36 @@ const createFolder = async (
 ): Promise<boolean> => {
     try {
         if (directoryPath === "/") {
+            await fs.mkdir(`userData/${id}`, {
+                recursive: true,
+            });
+            await prisma.directory.create({
+                data: {
+                    directoryName: id,
+                },
+            });
+        } else {
+            await fs.mkdir(`userData/${id}/${directoryPath}`, {
+                recursive: true,
+            });
+            const { id: parentId } = await getDirectoryInfo(
+                id,
+                path.dirname(directoryPath) === "/"
+                    ? ""
+                    : path.dirname(directoryPath),
+            );
+            console.log(parentId, path.basename(directoryPath));
+            await prisma.directory.create({
+                data: {
+                    directoryName: path.basename(directoryPath),
+                    parentDir: {
+                        connect: {
+                            id: parentId,
+                        },
+                    },
+                },
+            });
         }
-        await fs.mkdir(`userData/${id}/${directoryPath}`, {
-            recursive: true,
-        });
-        const newDirectoryName = path.basename(directoryPath);
-        const mainPathName = path.dirname(directoryPath);
-        const parentFolderName = path.basename(mainPathName);
-        console.log(newDirectoryName, mainPathName, parentFolderName);
-
-        await prisma.directory.create({
-            data: {
-                directoryName: newDirectoryName,
-            },
-        });
 
         return true;
     } catch (error) {
@@ -55,10 +72,41 @@ const createFolder = async (
         return false;
     }
 };
-
+const getDirectoryInfo = async (
+    userId: string,
+    dirPath: string = "",
+): Promise<FolderInformation> => {
+    let searchedDir;
+    if (dirPath !== "") {
+        const dirName = path.basename(dirPath);
+        let parentDirName = path.basename(path.dirname(dirPath));
+        parentDirName = parentDirName === "." ? userId : parentDirName;
+        console.log("info", dirName, parentDirName);
+        searchedDir = await prisma.directory.findFirst({
+            where: {
+                directoryName: dirName,
+                parentDir: {
+                    directoryName: parentDirName,
+                },
+            },
+            select: {
+                id: true,
+            },
+        });
+    } else {
+        searchedDir = await prisma.directory.findFirst({
+            where: {
+                directoryName: userId,
+            },
+        });
+    }
+    // console.log(searchedDir);
+    return { id: searchedDir?.id } satisfies FolderInformation;
+};
 export default {
     fullTree,
     getDirectories,
     getFiles,
     createFolder,
+    getDirectoryInfo,
 };

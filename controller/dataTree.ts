@@ -56,10 +56,36 @@ const createFolder = (req: Request, res: Response): void => {
         throw new Error("Folder Creation error");
     });
 };
-
+const createRootFolder = (req: Request, res: Response): void => {
+    (async () => {
+        const { id } = req.user!;
+        await service.createFolder(id, "/");
+        res.status(201).json({
+            message: "Folder created",
+        });
+    })().catch((error) => {
+        console.log(error);
+        throw new Error("Folder Creation error");
+    });
+};
+const getDirectoryInfo = (req: Request, res: Response): void => {
+    (async () => {
+        const { params } = req;
+        const { id: userId } = req.user!;
+        const directoryPath = params["0"] ?? "";
+        const result = await service.getDirectoryInfo(userId, directoryPath);
+        res.status(200).json({
+            ...result,
+        });
+    })().catch((error) => {
+        console.log(error);
+    });
+};
 export default {
     fullTree,
     getDirectories,
     getFiles,
     createFolder,
+    createRootFolder,
+    getDirectoryInfo,
 };
