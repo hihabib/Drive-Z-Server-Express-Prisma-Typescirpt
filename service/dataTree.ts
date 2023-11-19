@@ -1,11 +1,12 @@
 import FakeDB from "../fakeDB";
 import { type FileAndDirectoryStructures } from "../model/model";
-import { getDirectoryList, getFileList } from "../utils/fileSystem";
 import { type IFileAndDirectory } from "../utils/fileSystem";
-import fs from "fs/promises";
+import fs, { readdir } from "fs/promises";
 import path from "path";
 import { PrismaClient } from "@prisma/client";
 import { type FolderInformation } from "../model/structure";
+import { type Dirent } from "fs";
+import { v4 as uuidV4 } from "uuid";
 
 const prisma = new PrismaClient();
 
@@ -18,15 +19,55 @@ const fullTree = async (
 
 const getDirectories = async (
     id: string,
-    path: string = "",
+    sourcePath: string = "",
 ): Promise<IFileAndDirectory[] | undefined> => {
-    return await getDirectoryList(`userData/${id}/${path}`);
+    try {
+        const source = `userData/${id}${sourcePath}`;
+        const dirents: Dirent[] = await readdir(source, {
+            withFileTypes: true,
+        });
+        let directories = await Promise.all(
+            dirents
+                .filter((dirent: Dirent) => dirent.isDirectory())
+                .map(async (dirent: Dirent) => {
+                    const { id: dirId } = await getDirectoryInfo(
+                        id,
+                        source + "/" + dirent.name,
+                    );
+                    return {
+                        id: dirId!,
+                        name: dirent.name,
+                    };
+                }),
+        );
+        directories = directories.filter(
+            (directory) => directory.name !== "_download",
+        );
+        return directories;
+    } catch (error) {}
 };
 const getFiles = async (
     id: string,
     path: string = "",
 ): Promise<IFileAndDirectory[] | undefined> => {
-    return await getFileList(`userData/${id}/${path}`);
+    try {
+        const source = `userData/${id}/${path}`;
+        const dirents: Dirent[] = await readdir(source, {
+            withFileTypes: true,
+        });
+        const files: IFileAndDirectory[] = [];
+
+        for (const dirent of dirents) {
+            if (dirent.isFile()) {
+                files.push({
+                    id: uuidV4(),
+                    name: dirent.name,
+                });
+            }
+        }
+
+        return files;
+    } catch (error) {}
 };
 
 const createFolder = async (

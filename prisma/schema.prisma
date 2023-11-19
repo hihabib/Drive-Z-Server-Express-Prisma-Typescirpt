@@ -51,8 +51,11 @@ model File {
 
 model Directory {
   id              String      @id @default(auto()) @map("_id") @db.ObjectId
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @default(now()) @updatedAt
+  // Relations
+  file            File[]
+  parentDir       Directory?  @relation("nestedDirChain", fields: [parentDirId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parentDirId     String?     @db.ObjectId
+  childDir        Directory[] @relation("nestedDirChain")
   // Directory fields
   directoryName   String
   directorySizeKB Int?
@@ -60,11 +63,10 @@ model Directory {
   copiedAt        DateTime?
   editedAt        DateTime?
   changedAccessAt DateTime?
-  // Relations
-  file            File[]
-  parentDir       Directory?  @relation("nestedDirChain", fields: [parentDirId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  parentDirId     String?     @db.ObjectId
-  childDir        Directory[] @relation("nestedDirChain")
+
+  // Created and updated at
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 enum Gander {
