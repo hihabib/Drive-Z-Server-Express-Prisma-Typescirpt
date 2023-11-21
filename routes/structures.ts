@@ -8,7 +8,7 @@ const router = Router();
 router.get("/get-directories", authenticate, controller.getDirectories);
 router.get("/get-directories/*", authenticate, controller.getDirectories);
 
-// get folder info
+// get directory info
 router.get("/get-directory-info", authenticate, controller.getDirectoryInfo);
 router.get("/get-directory-info/*", authenticate, controller.getDirectoryInfo);
 
@@ -16,12 +16,11 @@ router.get("/get-directory-info/*", authenticate, controller.getDirectoryInfo);
 router.get("/get-files", authenticate, controller.getFiles);
 router.get("/get-files/*", authenticate, controller.getFiles);
 
-// create folder
-router.get("/create-folder", authenticate, controller.createFolder);
-router.get("/create-folder/*", authenticate, controller.createFolder);
+// create directory
+router.get("/create-directory", authenticate, controller.createDirectory);
+router.get("/create-directory/*", authenticate, controller.createDirectory);
 
-// delete file and folder
-router.get("/delete", authenticate, controller.deleteItem);
-router.get("/delete/*", authenticate, controller.deleteItem);
+// delete file and directory
+router.get("/delete/:id", authenticate, controller.deleteItem);
 
 export default router;

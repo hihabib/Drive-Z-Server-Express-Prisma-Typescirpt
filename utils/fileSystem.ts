@@ -1,11 +1,4 @@
-import fs, { readdir } from "fs/promises";
-import { type Dirent } from "fs";
-import { v4 as uuidV4 } from "uuid";
-
-export interface IFileAndDirectory {
-    id: string;
-    name: string;
-}
+import fs from "fs/promises";
 
 export const isFileAvailable = async (filePath: string): Promise<boolean> => {
     try {

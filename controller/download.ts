@@ -2,7 +2,7 @@ import { type Request, type Response } from "express";
 import { isEmptyObj } from "../utils/objectUtil";
 import { isFileAvailable } from "../utils/fileSystem";
 import path from "path";
-import { compressFolder } from "qiao-compress";
+import { compressDirectory } from "qiao-compress";
 
 export const fileDownload = (req: Request, res: Response): void => {
     (async () => {
@@ -27,20 +27,20 @@ export const fileDownload = (req: Request, res: Response): void => {
     });
 };
 
-export const folderDownload = (req: Request, res: Response): void => {
+export const directoryDownload = (req: Request, res: Response): void => {
     (async () => {
         const pathObject = req.params;
-        let folderPath = "";
+        let directoryPath = "";
         if (!isEmptyObj(pathObject)) {
-            folderPath = pathObject[0];
+            directoryPath = pathObject[0];
         }
         const { username } = req.user!;
         // const username = "habibulislam";
-        const sourceFolder = path.join("userData", username, folderPath);
+        const sourceDirectory = path.join("userData", username, directoryPath);
         const destPath = `userData/${username}/_download/compressed.zip`;
-        compressFolder(
+        compressDirectory(
             "zip",
-            sourceFolder,
+            sourceDirectory,
             destPath,
             function () {
                 // success
@@ -50,8 +50,8 @@ export const folderDownload = (req: Request, res: Response): void => {
             },
             function (e) {
                 // fail
-                console.log(`compress folder fail`);
-                console.log(`   source folder:  ${sourceFolder}`);
+                console.log(`compress directory fail`);
+                console.log(`   source directory:  ${sourceDirectory}`);
                 console.log(`   error:          ${e.toString()}`);
                 res.status(200).json({});
             },

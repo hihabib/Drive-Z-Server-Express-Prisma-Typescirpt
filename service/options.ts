@@ -1,14 +1,17 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
+import * as fs from "fs-extra";
+import * as path from "path";
 
-export const renameFileOrFolder = (filePath: string, newName: string): boolean => {
+export const renameFileOrDirectory = (
+    filePath: string,
+    newName: string,
+): boolean => {
     // Check if the provided path exists
     if (!fs.existsSync(filePath)) {
         console.error(`Error: The specified path does not exist - ${filePath}`);
         return false;
     }
 
-    // Extract the directory and file/folder name from the path
+    // Extract the directory and file/directory name from the path
     const directory = path.dirname(filePath);
     const oldName = path.basename(filePath);
 
@@ -16,7 +19,7 @@ export const renameFileOrFolder = (filePath: string, newName: string): boolean =
     const newPath = path.join(directory, newName);
 
     try {
-        // Rename the file or folder using fs-extra's move method
+        // Rename the file or directory using fs-extra's move method
         if (fs.lstatSync(filePath).isDirectory()) {
             fs.copySync(filePath, newPath);
             fs.removeSync(filePath);
@@ -28,8 +31,10 @@ export const renameFileOrFolder = (filePath: string, newName: string): boolean =
         if (error instanceof Error) {
             console.error(`Error renaming item: ${oldName} - ${error.message}`);
         } else {
-            console.error(`Unknown error occurred while renaming item: ${oldName}`);
+            console.error(
+                `Unknown error occurred while renaming item: ${oldName}`,
+            );
         }
         return false;
     }
-}
+};

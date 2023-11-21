@@ -2,11 +2,6 @@ import { type Request, type Response } from "express";
 import service from "../service/dataTree";
 import { isEmptyObj } from "../utils/objectUtil";
 
-const fullTree = async (req: Request, res: Response): Promise<void> => {
-    const { username } = req.params;
-    const fullTreeStructures = await service.fullTree(username);
-    res.status(200).json(fullTreeStructures);
-};
 const getDirectories = (req: Request, res: Response): void => {
     (async () => {
         const pathObject = req.params;
@@ -42,18 +37,18 @@ const getFiles = (req: Request, res: Response): void => {
     });
 };
 
-const createFolder = (req: Request, res: Response): void => {
+const createDirectory = (req: Request, res: Response): void => {
     (async () => {
         const params = req.params;
         const path = params[0] ?? "";
         const { id } = req.user!;
-        await service.createFolder(id, path);
+        await service.createDirectory(id, path);
         res.status(201).json({
-            message: "Folder created",
+            message: "Directory created",
         });
     })().catch((error) => {
         console.log(error);
-        throw new Error("Folder Creation error");
+        throw new Error("Directory Creation error");
     });
 };
 
@@ -72,15 +67,18 @@ const getDirectoryInfo = (req: Request, res: Response): void => {
 };
 
 const deleteItem = (req: Request, res: Response): void => {
-    const { id: userId } = req.user!;
-    const { params } = req;
-    console.log(params);
+    (async () => {
+        const { id: userId } = req.user!;
+        const { id: itemId } = req.params;
+        await service.deleteItem(userId, itemId);
+    })().catch((error) => {
+        console.log(error);
+    });
 };
 export default {
-    fullTree,
     getDirectories,
     getFiles,
-    createFolder,
+    createDirectory,
     getDirectoryInfo,
     deleteItem,
 };

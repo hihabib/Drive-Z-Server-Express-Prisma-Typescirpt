@@ -37,16 +37,17 @@ model File {
   id              String    @id @default(auto()) @map("_id") @db.ObjectId
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @default(now()) @updatedAt
+  // Relations
+  parentDir       Directory @relation(fields: [parentDirId], references: [id])
+  parentDirId     String    @db.ObjectId
   // File fileds
   fileName        String
+  baseSlug        String?
   fileSizeKB      Int?
   renamedAt       DateTime?
   copiedAt        DateTime?
   editedAt        DateTime?
   changedAccessAt DateTime?
-  // Relations
-  directory       Directory @relation(fields: [directoryId], references: [id])
-  directoryId     String    @unique @db.ObjectId
 }
 
 model Directory {
@@ -58,6 +59,7 @@ model Directory {
   childDir        Directory[] @relation("nestedDirChain")
   // Directory fields
   directoryName   String
+  baseSlug        String?     @unique
   directorySizeKB Int?
   renamedAt       DateTime?
   copiedAt        DateTime?

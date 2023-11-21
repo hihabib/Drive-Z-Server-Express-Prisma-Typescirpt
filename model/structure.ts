@@ -1,4 +1,4 @@
-export interface FolderInformation {
+export interface DirectoryInformation {
     id: string | undefined;
 }
 
@@ -10,4 +10,9 @@ export interface DirectoryBasicInfo {
 export interface RouterQuery {
     directoryName: string;
     parentDir?: RouterQuery;
+}
+
+export interface IFileAndDirectory {
+    id: string;
+    fileName: string;
 }
