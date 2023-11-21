@@ -36,10 +36,15 @@ const getFiles = (req: Request, res: Response): void => {
 
 const createDirectory = (req: Request, res: Response): void => {
     (async () => {
+        const { id: userId } = req.user!;
         const params = req.params;
-        const path = params[0] ?? "";
-        const { id } = req.user!;
-        await service.createDirectory(id, path);
+        const directoryPath =
+            params[0] !== undefined
+                ? !params[0].startsWith("/")
+                    ? "/" + params[0]
+                    : params[0]
+                : userId;
+        await service.createDirectory(userId, directoryPath);
         res.status(201).json({
             message: "Directory created",
         });

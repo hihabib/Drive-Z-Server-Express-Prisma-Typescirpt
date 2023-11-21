@@ -28,6 +28,7 @@ const getDirectories = async (
         return [];
     }
 };
+
 (async () => {
     const test = await getDirectories("", "/test");
     console.log(test);

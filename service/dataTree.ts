@@ -99,7 +99,6 @@ const getFiles = async (
     slug: string,
 ): Promise<FileBasicInfo[] | boolean> => {
     try {
-        console.log(slug);
         const filesContainer = await prisma.directory.findMany({
             where: {
                 baseSlug: slug,
@@ -124,65 +123,65 @@ const getFiles = async (
 };
 
 const createDirectory = async (
-    id: string,
+    userId: string,
     directoryPath: string,
 ): Promise<boolean> => {
     try {
-        let createdDirectory: {
-            id: string;
-            parentDirId: string | null;
-            directoryName: string;
-            baseSlug: string | null;
-            directorySizeKB: number | null;
-            renamedAt: Date | null;
-            copiedAt: Date | null;
-            editedAt: Date | null;
-            changedAccessAt: Date | null;
-            createdAt: Date;
-            updatedAt: Date;
-        };
-        if (directoryPath === "/") {
-            await fs.mkdir(`userData/${id}`, {
-                recursive: true,
-            });
-            createdDirectory = await prisma.directory.create({
-                data: {
-                    directoryName: id,
-                },
-            });
-        } else {
-            await fs.mkdir(`userData/${id}/${directoryPath}`, {
-                recursive: true,
-            });
-            const { id: parentId } = (await getDirectoryInfo(
-                id,
-                path.dirname(directoryPath) === "/"
-                    ? ""
-                    : path.dirname(directoryPath),
-            )) as DirectoryInformation;
+        if (userId !== directoryPath) {
+            const splitedDirectoryPath = directoryPath.split("/");
+            const directoryName =
+                splitedDirectoryPath[splitedDirectoryPath.length - 1];
 
-            createdDirectory = await prisma.directory.create({
-                data: {
-                    directoryName: path.basename(directoryPath),
-                    parentDir: {
-                        connect: {
-                            id: parentId,
-                        },
+            const parentDirectoryPathStr = [...splitedDirectoryPath];
+            parentDirectoryPathStr.pop();
+            let parentDirectoryPath = parentDirectoryPathStr.join("/");
+            parentDirectoryPath =
+                parentDirectoryPath.trim() !== ""
+                    ? parentDirectoryPath
+                    : userId;
+
+            console.log(parentDirectoryPath);
+            const parentDirectoryIdContainer =
+                await prisma.directory.findUnique({
+                    where: {
+                        baseSlug: parentDirectoryPath,
                     },
+                    select: {
+                        id: true,
+                    },
+                });
+            if (parentDirectoryIdContainer !== null) {
+                const { id: parentDirectoryId } = parentDirectoryIdContainer;
+
+                await prisma.directory.create({
+                    data: {
+                        directoryName,
+                        parentDirId: parentDirectoryId,
+                        baseSlug:
+                            parentDirectoryPath !== userId
+                                ? parentDirectoryPath + "/" + directoryName
+                                : "/" + directoryName,
+                    },
+                });
+            } else {
+                return false;
+            }
+        } else {
+            await prisma.directory.create({
+                data: {
+                    directoryName: userId,
+                    baseSlug: userId,
                 },
             });
         }
-
-        const baseSlug = await getDirectorySlugByDBChain(createdDirectory.id);
-        const updated = await prisma.directory.update({
-            where: {
-                id: createdDirectory.id,
-            },
-            data: {
-                baseSlug,
-            },
+        const explicitDirectoryPath =
+            userId === directoryPath
+                ? `userData/${userId}`
+                : `userData/${userId}${directoryPath}`;
+        // create directory in file system
+        await fs.mkdir(explicitDirectoryPath, {
+            recursive: true,
         });
-        console.log(updated);
         return true;
     } catch (error) {
         console.log(error);
