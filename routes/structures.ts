@@ -5,7 +5,7 @@ import { authenticate } from "../middleware/authenticate";
 const router = Router();
 
 // get directory list
-router.get("/get-directories", authenticate, controller.getDirectories);
+router.get("/get-directories/", authenticate, controller.getDirectories);
 router.get("/get-directories/*", authenticate, controller.getDirectories);
 
 // get directory info

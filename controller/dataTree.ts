@@ -1,16 +1,13 @@
 import { type Request, type Response } from "express";
 import service from "../service/dataTree";
-import { isEmptyObj } from "../utils/objectUtil";
 
 const getDirectories = (req: Request, res: Response): void => {
     (async () => {
-        const pathObject = req.params;
-        let nestedPath = "";
-        if (!isEmptyObj(pathObject)) {
-            nestedPath = pathObject[0];
-        }
-        const { id } = req.user!;
-        const directories = await service.getDirectories(id, nestedPath);
+        const { id: userId } = req.user!;
+        let { "0": slug } = req.params;
+        slug = slug !== undefined ? "/" + slug : userId;
+
+        const directories = await service.getDirectories(userId, slug);
         if (directories != null) {
             res.status(200).json(directories);
         } else {
@@ -22,12 +19,12 @@ const getDirectories = (req: Request, res: Response): void => {
 };
 const getFiles = (req: Request, res: Response): void => {
     (async () => {
-        const pathObject = req.params;
-        const nestedPath = pathObject[0] ?? "";
+        const { id: userId } = req.user!;
+        let { "0": slug } = req.params;
+        slug = slug !== undefined ? "/" + slug : userId;
 
-        const { id } = req.user!;
-        const files = await service.getFiles(id, nestedPath);
-        if (files != null) {
+        const files = await service.getFiles(userId, slug);
+        if (files !== false) {
             res.status(200).json(files);
         } else {
             res.status(404).json({ message: "Files Not Found" });
@@ -56,8 +53,13 @@ const getDirectoryInfo = (req: Request, res: Response): void => {
     (async () => {
         const { params } = req;
         const { id: userId } = req.user!;
-        const directoryPath = params["0"] ?? "";
-        const result = await service.getDirectoryInfo(userId, directoryPath);
+        const baseSlug = params["0"] !== undefined ? "/" + params[0] : userId;
+        const result = await service.getDirectoryInfo(userId, baseSlug);
+        if (typeof result === "boolean") {
+            return res.status(404).json({
+                message: "Directory not found",
+            });
+        }
         res.status(200).json({
             ...result,
         });
@@ -70,11 +72,12 @@ const deleteItem = (req: Request, res: Response): void => {
     (async () => {
         const { id: userId } = req.user!;
         const { id: itemId } = req.params;
-        await service.deleteItem(userId, itemId);
+        // await service.deleteItem(userId, itemId);
     })().catch((error) => {
         console.log(error);
     });
 };
+
 export default {
     getDirectories,
     getFiles,

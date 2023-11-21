@@ -1,19 +1,15 @@
 import fs from "fs/promises";
-import fsExtra from "fs-extra";
 import path from "path";
 import { PrismaClient } from "@prisma/client";
 import {
     type DirectoryBasicInfo,
     type DirectoryInformation,
-    type IFileAndDirectory,
-    type RouterQuery,
+    type FileBasicInfo,
 } from "../model/structure";
 
 const prisma = new PrismaClient();
 
-const getDirectorySlugByDBChain = async (
-    dirId: string | undefined,
-): Promise<string> => {
+const getDirectorySlugByDBChain = async (dirId: string): Promise<string> => {
     try {
         const dirList: string[] = [];
         let dirName: string = "";
@@ -71,111 +67,27 @@ const getDirectorySlugByDBChain = async (
     }
 };
 
-const getRootDir = async (
-    userId: string,
-): Promise<{
-    id: string;
-} | null> => {
-    try {
-        return await prisma.directory.findFirst({
-            where: {
-                directoryName: userId,
-                parentDir: null,
-            },
-        });
-    } catch (error) {
-        console.log(error);
-        return null;
-    }
-};
-
-const createOrGetRootDir = async (
-    userId: string,
-): Promise<{
-    id: string;
-}> => {
-    let rootDir = await getRootDir(userId);
-    if (rootDir === null) {
-        rootDir = await prisma.directory.create({
-            data: {
-                directoryName: userId,
-            },
-        });
-        await fs.mkdir(path.join("userData", userId), { recursive: true });
-    }
-    return rootDir;
-};
-
-const getDirectoryQuery = (path: string, userId: string): RouterQuery => {
-    const parts = path.split("/").filter((part) => part !== ""); // Filter out empty parts
-    let result: RouterQuery | null = null;
-
-    for (let i = 0; i < parts.length; i++) {
-        const directoryName = parts[i];
-        const parentDir: RouterQuery = result ?? {
-            directoryName: userId,
-        };
-        result = {
-            directoryName,
-            parentDir,
-        };
-    }
-
-    return result ?? { directoryName: userId };
-};
-
-const getDirId = async (
-    dirPath: string,
-    userId: string,
-): Promise<DirectoryBasicInfo | null> => {
-    const query = getDirectoryQuery(dirPath, userId);
-    const data = await prisma.directory.findFirst({
-        where: {
-            ...query,
-        },
-        select: {
-            id: true,
-            directoryName: true,
-        },
-    });
-    return data;
-};
-
 const getDirectories = async (
     userId: string,
-    sourcePath: string = "",
+    slug: string,
 ): Promise<DirectoryBasicInfo[]> => {
     try {
-        if (sourcePath === "") {
-            const { id: rootDirId } = await createOrGetRootDir(userId);
-
-            return await prisma.directory.findMany({
-                where: {
-                    parentDirId: rootDirId,
-                },
-                select: {
-                    id: true,
-                    directoryName: true,
-                },
-            });
-        } else {
-            const searchResult = await getDirId(sourcePath, userId);
-            if (searchResult !== null) {
-                return await prisma.directory.findMany({
-                    where: {
-                        parentDir: {
-                            id: searchResult.id,
-                        },
-                    },
+        const childDirectoriesContainer = await prisma.directory.findMany({
+            where: {
+                baseSlug: slug,
+            },
+            select: {
+                childDir: {
                     select: {
                         id: true,
                         directoryName: true,
+                        baseSlug: true,
                     },
-                });
-            } else {
-                return [];
-            }
-        }
+                },
+            },
+        });
+
+        return childDirectoriesContainer[0].childDir;
     } catch (error) {
         console.log(error);
         return [];
@@ -184,40 +96,27 @@ const getDirectories = async (
 
 const getFiles = async (
     userId: string,
-    sourcePath: string = "",
-): Promise<IFileAndDirectory[] | undefined> => {
+    slug: string,
+): Promise<FileBasicInfo[] | boolean> => {
     try {
-        if (sourcePath === "") {
-            const { id: rootDirId } = await createOrGetRootDir(userId);
-            return await prisma.file.findMany({
-                where: {
-                    parentDir: {
-                        id: rootDirId,
-                    },
-                },
-                select: {
-                    id: true,
-                    fileName: true,
-                },
-            });
-        } else {
-            const searchResult = await getDirId(sourcePath, userId);
-            if (searchResult !== null) {
-                return await prisma.file.findMany({
-                    where: {
-                        parentDir: {
-                            id: searchResult.id,
-                        },
-                    },
+        console.log(slug);
+        const filesContainer = await prisma.directory.findMany({
+            where: {
+                baseSlug: slug,
+            },
+            select: {
+                file: {
                     select: {
                         id: true,
                         fileName: true,
+                        fileSizeKB: true,
+                        baseSlug: true,
                     },
-                });
-            } else {
-                return [];
-            }
-        }
+                },
+            },
+        });
+        const { file: files } = filesContainer[0];
+        return files;
     } catch (error) {
         console.log(error);
         return [];
@@ -255,12 +154,13 @@ const createDirectory = async (
             await fs.mkdir(`userData/${id}/${directoryPath}`, {
                 recursive: true,
             });
-            const { id: parentId } = await getDirectoryInfo(
+            const { id: parentId } = (await getDirectoryInfo(
                 id,
                 path.dirname(directoryPath) === "/"
                     ? ""
                     : path.dirname(directoryPath),
-            );
+            )) as DirectoryInformation;
+
             createdDirectory = await prisma.directory.create({
                 data: {
                     directoryName: path.basename(directoryPath),
@@ -291,65 +191,24 @@ const createDirectory = async (
 };
 const getDirectoryInfo = async (
     userId: string,
-    dirPath: string = "",
-): Promise<DirectoryInformation> => {
-    let searchedDir;
-    if (dirPath !== "") {
-        const dirName = path.basename(dirPath);
-        let parentDirName = path.basename(path.dirname(dirPath));
-        parentDirName = parentDirName === "." ? userId : parentDirName;
-        console.log("info", dirName, parentDirName);
-        searchedDir = await prisma.directory.findFirst({
-            where: {
-                directoryName: dirName,
-                parentDir: {
-                    directoryName: parentDirName,
-                },
-            },
-            select: {
-                id: true,
-            },
-        });
-    } else {
-        searchedDir = await prisma.directory.findFirst({
-            where: {
-                directoryName: userId,
-            },
-        });
+    baseSlug: string,
+): Promise<DirectoryInformation | boolean> => {
+    console.log(baseSlug);
+    const directoryInfo = await prisma.directory.findUnique({
+        where: {
+            baseSlug,
+        },
+    });
+    if (directoryInfo === null) {
+        return false;
     }
-    // console.log(searchedDir);
-    return { id: searchedDir?.id } satisfies DirectoryInformation;
+    return { ...directoryInfo } satisfies DirectoryInformation;
 };
-const deleteItem = async (userId: string, itemId: string): Promise<boolean> => {
-    // try {
-    //     const source = path.join("userData", userId, itemPath);
-    //     await fsExtra.rm(source, {
-    //         recursive: true,
-    //     });
-    //
-    //     if ((await fs.lstat(source)).isDirectory()) {
-    //         const dirName = path.basename(source);
-    //         const parentDirName = path.basename(path.dirname(source));
-    //         await prisma.directory.delete({
-    //             where: {
-    //                 directoryName: dirName,
-    //                 parentDir: {
-    //                     directoryName: parentDirName,
-    //                 },
-    //             },
-    //         });
-    //     }
-    //     return true;
-    // } catch (error) {
-    //     console.log(error);
-    //     return false;
-    // }
-};
+
 export default {
     getDirectories,
     getFiles,
     createDirectory,
     getDirectoryInfo,
-    deleteItem,
     getDirectorySlugByDBChain,
 };
