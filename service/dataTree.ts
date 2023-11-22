@@ -1,5 +1,4 @@
 import fs from "fs/promises";
-import path from "path";
 import { PrismaClient } from "@prisma/client";
 import {
     type DirectoryBasicInfo,
@@ -64,6 +63,32 @@ const getDirectorySlugByDBChain = async (dirId: string): Promise<string> => {
     } catch (error) {
         console.log(error);
         return "";
+    }
+};
+
+const getFileSlugByDBChain = async (
+    fileId: string,
+): Promise<string | boolean> => {
+    const fileParentDirId = await prisma.file.findUnique({
+        where: {
+            id: fileId,
+        },
+        select: {
+            fileName: true,
+            parentDirId: true,
+        },
+    });
+    if (fileParentDirId !== null) {
+        const { parentDirId, fileName } = fileParentDirId;
+        let dirSlug = await getDirectorySlugByDBChain(parentDirId);
+        if (!dirSlug.startsWith("/")) {
+            const dirSlugArr = dirSlug.split("/");
+            dirSlugArr.shift();
+            dirSlug = dirSlugArr.join("/");
+        }
+        return dirSlug + "/" + fileName;
+    } else {
+        return false;
     }
 };
 
@@ -210,4 +235,5 @@ export default {
     createDirectory,
     getDirectoryInfo,
     getDirectorySlugByDBChain,
+    getFileSlugByDBChain,
 };
