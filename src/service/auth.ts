@@ -1,9 +1,10 @@
 import { authPrivateKey } from "../config/keys";
 import * as jwt from "jsonwebtoken";
-
+import fs from "fs/promises";
 import { type ProtectedUserData, type User } from "../model/authentication";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
+import path from "path";
 
 const prisma = new PrismaClient();
 const saveUser = async ({
@@ -19,7 +20,7 @@ const saveUser = async ({
     try {
         const saltRound = Number(process.env.SALTROUNDS) ?? 10;
         const hash = await bcrypt.hash(password, saltRound);
-        await prisma.user.create({
+        const savedUser = await prisma.user.create({
             data: {
                 username,
                 email,
@@ -39,6 +40,9 @@ const saveUser = async ({
                     },
                 },
             },
+        });
+        await fs.mkdir(path.join("userData", savedUser.id), {
+            recursive: true,
         });
         return true;
     } catch (error) {
