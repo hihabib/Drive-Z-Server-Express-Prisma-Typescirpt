@@ -5,15 +5,26 @@ import {
     type DirectoryInformation,
     type FileBasicInfo,
 } from "../model/structure";
-import { getDirectorySlugByDBChain } from "../utils/structures";
+import path from "path";
 
 const prisma = new PrismaClient();
 
-const getDirectories = async (
+export const getDirectories = async (
     userId: string,
     slug: string,
-): Promise<DirectoryBasicInfo[]> => {
+): Promise<DirectoryBasicInfo[] | null> => {
     try {
+        const currentDirCheck = await prisma.directory.findUnique({
+            where: {
+                baseSlug: slug,
+            },
+            select: {
+                id: true,
+            },
+        });
+        if (currentDirCheck === null) {
+            return null;
+        }
         const childDirectoriesContainer = await prisma.directory.findMany({
             where: {
                 baseSlug: slug,
@@ -40,7 +51,7 @@ const getDirectories = async (
     }
 };
 
-const getFiles = async (
+export const getFiles = async (
     userId: string,
     slug: string,
 ): Promise<FileBasicInfo[] | boolean> => {
@@ -74,73 +85,91 @@ const getFiles = async (
     }
 };
 
-const createDirectory = async (
+export const createDirectory = async (
     userId: string,
-    directoryPath: string,
+    ...foldersName: string[]
 ): Promise<boolean> => {
-    try {
-        if (userId !== directoryPath) {
-            const splitedDirectoryPath = directoryPath.split("/");
-            const directoryName =
-                splitedDirectoryPath[splitedDirectoryPath.length - 1];
-
-            const parentDirectoryPathStr = [...splitedDirectoryPath];
-            parentDirectoryPathStr.pop();
-            let parentDirectoryPath = parentDirectoryPathStr.join("/");
-            parentDirectoryPath =
-                parentDirectoryPath.trim() !== ""
-                    ? parentDirectoryPath
-                    : userId;
-
-            console.log(parentDirectoryPath);
-            const parentDirectoryIdContainer =
-                await prisma.directory.findUnique({
-                    where: {
-                        baseSlug: parentDirectoryPath,
-                    },
-                    select: {
-                        id: true,
-                    },
-                });
-            if (parentDirectoryIdContainer !== null) {
-                const { id: parentDirectoryId } = parentDirectoryIdContainer;
-
-                await prisma.directory.create({
-                    data: {
-                        directoryName,
-                        parentDirId: parentDirectoryId,
-                        baseSlug:
-                            parentDirectoryPath !== userId
-                                ? parentDirectoryPath + "/" + directoryName
-                                : "/" + directoryName,
-                    },
-                });
-            } else {
-                return false;
-            }
-        } else {
-            await prisma.directory.create({
-                data: {
-                    directoryName: userId,
-                    baseSlug: userId,
-                },
-            });
-        }
-        const explicitDirectoryPath =
-            userId === directoryPath
-                ? `userData/${userId}`
-                : `userData/${userId}${directoryPath}`;
-        // create directory in file system
-        await fs.mkdir(explicitDirectoryPath, {
-            recursive: true,
-        });
-        return true;
-    } catch (error) {
-        console.log(error);
-        return false;
+    // get directory creator's username
+    const directoryCreator = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+        select: {
+            username: true,
+        },
+    });
+    // throw error if user not found
+    if (directoryCreator === null) {
+        throw new Error("Directory creator (by id) not found");
     }
+
+    // create baseSlug for saving at database
+    let baseSlug =
+        userId +
+        foldersName.reduce((current, next) => {
+            current += "/" + next;
+            return current;
+        }, "");
+    // make baseSlug as userID for root directory
+    if (foldersName.length === 1 && foldersName[0] === "") {
+        baseSlug = userId;
+    }
+    // create directory in inside userData folder by file system
+    const directoryPath = path.join("userData", userId, ...foldersName);
+    await fs.mkdir(directoryPath, {
+        recursive: true,
+    });
+
+    // get parent directory slug
+    const parentSlugArr = baseSlug.split("/");
+    parentSlugArr.pop();
+    let parentSlug: string | null = parentSlugArr.join("/");
+    if (parentSlug === "") {
+        parentSlug = null;
+    }
+
+    // get parent directory id by parentSlug
+    let parentDirectoryId: null | { id: string } = null;
+    if (parentSlug !== null) {
+        parentDirectoryId = await prisma.directory.findUnique({
+            where: {
+                baseSlug: parentSlug,
+            },
+            select: {
+                id: true,
+            },
+        });
+    }
+    const directoryName = foldersName[foldersName.length - 1];
+    if (parentDirectoryId !== null) {
+        // create directory with the reference of parent directory
+        await prisma.directory.create({
+            data: {
+                directoryName,
+                baseSlug,
+                owner: directoryCreator.username,
+                parentDir: {
+                    connect: {
+                        id: parentDirectoryId.id,
+                    },
+                },
+            },
+        });
+    } else {
+        // create directory without parent directory
+        // useful for making root directory at the time of user signup
+        await prisma.directory.create({
+            data: {
+                directoryName,
+                baseSlug,
+                owner: directoryCreator.username,
+            },
+        });
+    }
+    return true;
 };
-const getDirectoryInfo = async (
+
+export const getDirectoryInfo = async (
     userId: string,
     baseSlug: string,
 ): Promise<DirectoryInformation | boolean> => {
@@ -154,11 +183,4 @@ const getDirectoryInfo = async (
         return false;
     }
     return { ...directoryInfo } satisfies DirectoryInformation;
-};
-
-export default {
-    getDirectories,
-    getFiles,
-    createDirectory,
-    getDirectoryInfo,
 };

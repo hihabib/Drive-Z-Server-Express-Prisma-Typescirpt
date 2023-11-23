@@ -1,10 +1,9 @@
-import { authPrivateKey } from "../config/keys";
+import { authPrivateKey } from "../../config/keys";
 import * as jwt from "jsonwebtoken";
-import fs from "fs/promises";
 import { type ProtectedUserData, type User } from "../model/authentication";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
-import path from "path";
+import { createDirectory } from "./structures";
 
 const prisma = new PrismaClient();
 const saveUser = async ({
@@ -41,9 +40,7 @@ const saveUser = async ({
                 },
             },
         });
-        await fs.mkdir(path.join("userData", savedUser.id), {
-            recursive: true,
-        });
+        await createDirectory(savedUser.id, "");
         return true;
     } catch (error) {
         console.log(error);

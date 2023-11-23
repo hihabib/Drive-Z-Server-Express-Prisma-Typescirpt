@@ -1,6 +1,6 @@
 import { type Request, type Response, type NextFunction } from "express";
 import * as jwt from "jsonwebtoken";
-import { authPrivateKey } from "../config/keys";
+import { authPrivateKey } from "../../config/keys";
 import { type ProtectedUserData } from "../model/authentication";
 
 export const authenticate = (

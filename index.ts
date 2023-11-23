@@ -5,9 +5,9 @@ import express, {
     type Response,
     type NextFunction,
 } from "express";
-import router from "./routes";
+import router from "./src/routes";
 import cors from "cors";
-import { type HandleError } from "./model/model";
+import { type HandleError } from "./src/model/model";
 
 const app: Express = express();
 const PORT = 8080;

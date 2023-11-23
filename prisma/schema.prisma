@@ -43,6 +43,7 @@ model File {
   // File fileds
   fileName        String
   baseSlug        String?
+  owner           String
   fileSizeKB      Int?
   renamedAt       DateTime?
   copiedAt        DateTime?
@@ -60,6 +61,7 @@ model Directory {
   // Directory fields
   directoryName   String
   baseSlug        String?     @unique
+  owner           String
   directorySizeKB Int?
   renamedAt       DateTime?
   copiedAt        DateTime?

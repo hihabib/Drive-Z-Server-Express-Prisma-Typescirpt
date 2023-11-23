@@ -1,7 +1,7 @@
 import { type Request, type Response } from "express";
 import service from "../service/auth";
 
-const signup = (req: Request, res: Response): void => {
+export const signup = (req: Request, res: Response): void => {
     (async () => {
         const isUserCreated = await service.saveUser(req.body);
         if (!isUserCreated) {
@@ -15,7 +15,7 @@ const signup = (req: Request, res: Response): void => {
         });
     });
 };
-const signin = (req: Request, res: Response): void => {
+export const signin = (req: Request, res: Response): void => {
     (async () => {
         try {
             const { username, password } = req.body;
@@ -38,9 +38,4 @@ const signin = (req: Request, res: Response): void => {
     })().catch((error) => {
         console.log(error);
     });
-};
-
-export default {
-    signup,
-    signin,
 };

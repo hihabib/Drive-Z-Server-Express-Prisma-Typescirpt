@@ -1,11 +1,11 @@
 import { type Request, type Response } from "express";
-import service from "../service/dataTree";
+import * as service from "../service/structures";
 
-const getDirectories = (req: Request, res: Response): void => {
+export const getDirectories = (req: Request, res: Response): void => {
     (async () => {
         const { id: userId } = req.user!;
         let { "0": slug } = req.params;
-        slug = slug !== undefined ? "/" + slug : userId;
+        slug = slug !== undefined ? userId + "/" + slug : userId;
 
         const directories = await service.getDirectories(userId, slug);
         if (directories != null) {
@@ -17,7 +17,7 @@ const getDirectories = (req: Request, res: Response): void => {
         console.log(error);
     });
 };
-const getFiles = (req: Request, res: Response): void => {
+export const getFiles = (req: Request, res: Response): void => {
     (async () => {
         const { id: userId } = req.user!;
         let { "0": slug } = req.params;
@@ -34,17 +34,21 @@ const getFiles = (req: Request, res: Response): void => {
     });
 };
 
-const createDirectory = (req: Request, res: Response): void => {
+export const createDirectory = (req: Request, res: Response): void => {
     (async () => {
-        const { id: userId } = req.user!;
-        const params = req.params;
-        const directoryPath =
-            params[0] !== undefined
-                ? !params[0].startsWith("/")
-                    ? "/" + params[0]
-                    : params[0]
-                : userId;
-        await service.createDirectory(userId, directoryPath);
+        const { id: userId } = req.user ?? {};
+        if (userId === undefined) {
+            throw new Error("userID not found. May be authentication failed");
+        }
+        const { "0": directoryPath = userId } = req.params;
+        const directoriesName = directoryPath.split("/");
+        const isCreated = await service.createDirectory(
+            userId,
+            ...directoriesName,
+        );
+        if (!isCreated) {
+            throw new Error("Directory creation failed");
+        }
         res.status(201).json({
             message: "Directory created",
         });
@@ -54,7 +58,7 @@ const createDirectory = (req: Request, res: Response): void => {
     });
 };
 
-const getDirectoryInfo = (req: Request, res: Response): void => {
+export const getDirectoryInfo = (req: Request, res: Response): void => {
     (async () => {
         const { params } = req;
         const { id: userId } = req.user!;
@@ -73,20 +77,12 @@ const getDirectoryInfo = (req: Request, res: Response): void => {
     });
 };
 
-const deleteItem = (req: Request, res: Response): void => {
+export const deleteItem = (req: Request, res: Response): void => {
     (async () => {
-        const { id: userId } = req.user!;
-        const { id: itemId } = req.params;
+        // const { id: userId } = req.user!;
+        // const { id: itemId } = req.params;
         // await service.deleteItem(userId, itemId);
     })().catch((error) => {
         console.log(error);
     });
-};
-
-export default {
-    getDirectories,
-    getFiles,
-    createDirectory,
-    getDirectoryInfo,
-    deleteItem,
 };
