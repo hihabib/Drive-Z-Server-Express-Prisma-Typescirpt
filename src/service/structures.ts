@@ -140,9 +140,9 @@ export const createDirectory = async (
             },
         });
     }
-    const directoryName = foldersName[foldersName.length - 1];
     if (parentDirectoryId !== null) {
         // create directory with the reference of parent directory
+        const directoryName = foldersName[foldersName.length - 1];
         await prisma.directory.create({
             data: {
                 directoryName,
@@ -158,6 +158,7 @@ export const createDirectory = async (
     } else {
         // create directory without parent directory
         // useful for making root directory at the time of user signup
+        const directoryName = userId;
         await prisma.directory.create({
             data: {
                 directoryName,
