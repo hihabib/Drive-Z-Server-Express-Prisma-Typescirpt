@@ -24,7 +24,7 @@ export const getFiles = (req: Request, res: Response): void => {
         slug = slug !== undefined ? "/" + slug : userId;
 
         const files = await service.getFiles(userId, slug);
-        if (files !== false) {
+        if (files !== null) {
             res.status(200).json(files);
         } else {
             res.status(404).json({ message: "Files Not Found" });

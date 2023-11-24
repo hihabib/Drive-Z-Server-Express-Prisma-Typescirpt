@@ -23,7 +23,7 @@ export const directoryDownload = (req: Request, res: Response): void => {
     (async () => {
         const { folderId } = req.params;
         const { id: userId } = req.user!;
-        await service.downloadFolder(
+        await service.downloadDirectory(
             userId,
             folderId,
             (downloadLink) => {

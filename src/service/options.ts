@@ -22,7 +22,7 @@ export const renameFileOrDirectory = async (
         let isDir: boolean = false;
         let isFile: boolean = false;
         let item: null | { baseSlug: string | null };
-
+        console.log(itemId, username);
         // is file or not
         item = await prisma.file.findUnique({
             where: {

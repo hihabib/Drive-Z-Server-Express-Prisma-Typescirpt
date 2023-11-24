@@ -1,13 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import path from "path";
 import { compressFolder as compressDirectory } from "qiao-compress";
+import fs from "fs";
 
 const prisma = new PrismaClient();
 const getFilePath = async (
     userId: string,
     fileId: string,
 ): Promise<false | string> => {
-    const filePath = await prisma.file.findUnique({
+    const baseSlugContainer = await prisma.file.findUnique({
         where: {
             id: fileId,
         },
@@ -15,14 +16,16 @@ const getFilePath = async (
             baseSlug: true,
         },
     });
-    if (filePath === null || filePath.baseSlug === null) {
+    if (baseSlugContainer === null || baseSlugContainer.baseSlug === null) {
         return false;
     }
-    const { baseSlug } = filePath;
-    return path.join("userData", userId) + baseSlug;
+    const { baseSlug } = baseSlugContainer;
+    const baseSlugArr = baseSlug.split("/");
+
+    return path.join("userData", ...baseSlugArr);
 };
 
-const downloadFolder = async (
+const downloadDirectory = async (
     userId: string,
     folderId: string,
     success: (downloadLink: string) => void,
@@ -43,8 +46,19 @@ const downloadFolder = async (
     if (baseSlug === null) {
         return false;
     }
-    const compressionDirectoryPath = `userData/${userId}${baseSlug}`;
-    const downloadLink = `userData/_download/${folderId}.zip`;
+    const baseSlugArr = baseSlug.split("/");
+    const compressionDirectoryPath = path.join("userData", ...baseSlugArr);
+
+    // create _download folder if not exist
+    if (!fs.existsSync(path.join("userData", "_download"))) {
+        fs.mkdir(path.join("userData", "_download"), (err) => {
+            if (err != null) {
+                throw new Error("Can't create _download Folder");
+            }
+        });
+    }
+    const downloadLink = path.join("userData", "_download", `${folderId}.zip`);
+    console.log(compressionDirectoryPath);
     compressDirectory(
         "zip",
         compressionDirectoryPath,
@@ -55,4 +69,7 @@ const downloadFolder = async (
         failed,
     );
 };
-export default { getFilePath, downloadFolder };
+export default {
+    getFilePath,
+    downloadDirectory,
+};

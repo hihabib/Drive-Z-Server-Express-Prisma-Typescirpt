@@ -6,6 +6,7 @@ import {
     type FileBasicInfo,
 } from "../model/structure";
 import path from "path";
+import { getUser } from "../utils/user";
 
 const prisma = new PrismaClient();
 
@@ -14,9 +15,15 @@ export const getDirectories = async (
     slug: string,
 ): Promise<DirectoryBasicInfo[] | null> => {
     try {
+        const user = await getUser(userId);
+        if (user === null) {
+            return null;
+        }
+
         const currentDirCheck = await prisma.directory.findUnique({
             where: {
                 baseSlug: slug,
+                owner: user.username,
             },
             select: {
                 id: true,
@@ -28,6 +35,7 @@ export const getDirectories = async (
         const childDirectoriesContainer = await prisma.directory.findMany({
             where: {
                 baseSlug: slug,
+                owner: user.username,
             },
             select: {
                 childDir: {
@@ -35,6 +43,7 @@ export const getDirectories = async (
                         id: true,
                         directoryName: true,
                         baseSlug: true,
+                        owner: true,
                     },
                 },
             },
@@ -54,11 +63,19 @@ export const getDirectories = async (
 export const getFiles = async (
     userId: string,
     slug: string,
-): Promise<FileBasicInfo[] | boolean> => {
+): Promise<FileBasicInfo[] | null> => {
     try {
+        // check user
+        const user = await getUser(userId);
+        if (user === null) {
+            return null;
+        }
+
+        const baseSlug = userId + slug;
         const filesContainer = await prisma.directory.findMany({
             where: {
-                baseSlug: slug,
+                baseSlug,
+                owner: user.username,
             },
             select: {
                 file: {
@@ -67,10 +84,12 @@ export const getFiles = async (
                         fileName: true,
                         fileSizeKB: true,
                         baseSlug: true,
+                        owner: true,
                     },
                 },
             },
         });
+
         if (
             filesContainer[0] !== undefined &&
             filesContainer[0].file !== undefined
@@ -81,7 +100,7 @@ export const getFiles = async (
         return [];
     } catch (error) {
         console.log(error);
-        return [];
+        return null;
     }
 };
 
