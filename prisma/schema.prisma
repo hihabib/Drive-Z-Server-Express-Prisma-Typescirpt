@@ -43,6 +43,7 @@ model File {
   // File fileds
   fileName        String
   baseSlug        String?
+  isTrashed       Boolean   @default(false)
   owner           String
   fileSizeKB      Int?
   renamedAt       DateTime?
@@ -55,6 +56,7 @@ model Directory {
   id              String      @id @default(auto()) @map("_id") @db.ObjectId
   // Relations
   file            File[]
+  isTrashed       Boolean     @default(false)
   parentDir       Directory?  @relation("nestedDirChain", fields: [parentDirId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   parentDirId     String?     @db.ObjectId
   childDir        Directory[] @relation("nestedDirChain")

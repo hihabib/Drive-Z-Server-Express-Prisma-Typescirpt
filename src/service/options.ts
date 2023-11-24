@@ -8,7 +8,17 @@ import {
     isDirectoryId,
     isFileId,
 } from "../utils/structures";
-import { type DirectoryInformation, type FileInformation } from "../model/structure";
+import {
+    type DirectoryInformation,
+    type FileInformation,
+} from "../model/structure";
+import {
+    getAllChildDirectories,
+    getAllChildFiles,
+    moveItem,
+    trashDirectory,
+    trashFile,
+} from "../utils/options";
 
 const prisma = new PrismaClient();
 
@@ -201,11 +211,25 @@ export const trashItem = async (
                 recursive: true,
             });
         }
+
         const itemNewPath = path.join("userData", ...trashBaseSlugArr);
 
         // move to trash
-        await fs.rename(itemOldPath, itemNewPath);
-        return true;
+        const isMoved = await moveItem(itemOldPath, itemNewPath);
+        if (isMoved && isDir) {
+            // make all child files to trashItem in DB (Recursively)
+            const allChildFiles = await getAllChildFiles(itemId);
+            for (let i = 0; i < allChildFiles.length; i++) {
+                await trashFile(allChildFiles[i], true);
+            }
+
+            // make all child directories to trashItem in DB (Recursively)
+            const allChildDirectories = await getAllChildDirectories(itemId);
+            for (let i = 0; i < allChildDirectories.length; i++) {
+                await trashDirectory(allChildDirectories[i], true);
+            }
+        }
+        return isMoved;
     } catch (error) {
         console.error(error);
         return false;

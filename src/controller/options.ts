@@ -5,7 +5,11 @@ export const rename = (req: Request, res: Response): void => {
     (async (): Promise<void> => {
         const { itemId } = req.params;
         const { newName } = req.body;
-        const { id: userId } = req.user!;
+        const { user } = req;
+        if (user === undefined) {
+            return;
+        }
+        const { id: userId } = user;
         const isRenamed = await service.renameFileOrDirectory(
             userId,
             itemId,
@@ -27,8 +31,7 @@ export const trashItem = (req: Request, res: Response): void => {
             return;
         }
         const { id: userId } = user;
-        const { id: itemId } = req.params;
-
+        const { itemId } = req.params;
         const isMovedToTrash = await service.trashItem(userId, itemId);
         if (isMovedToTrash) {
             res.status(200).json({

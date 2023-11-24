@@ -2,18 +2,10 @@ import fs from "fs/promises";
 import { PrismaClient } from "@prisma/client";
 import {
     type DirectoryBasicInfo,
-    type DirectoryInformation,
     type FileBasicInfo,
-    type FileInformation,
 } from "../model/structure";
 import path from "path";
 import { getUser } from "../utils/user";
-import {
-    getDirectoryInfoById,
-    getFileInfoById,
-    isDirectoryId,
-    isFileId,
-} from "../utils/structures";
 
 const prisma = new PrismaClient();
 
@@ -31,11 +23,15 @@ export const getDirectories = async (
             where: {
                 baseSlug: slug,
                 owner: user.username,
+                isTrashed: {
+                    not: true,
+                },
             },
             select: {
                 id: true,
             },
         });
+        console.log(slug, currentDirCheck);
         if (currentDirCheck === null) {
             return null;
         }
@@ -43,6 +39,9 @@ export const getDirectories = async (
             where: {
                 baseSlug: slug,
                 owner: user.username,
+                isTrashed: {
+                    not: true,
+                },
             },
             select: {
                 childDir: {
@@ -83,6 +82,9 @@ export const getFiles = async (
             where: {
                 baseSlug,
                 owner: user.username,
+                isTrashed: {
+                    not: true,
+                },
             },
             select: {
                 file: {

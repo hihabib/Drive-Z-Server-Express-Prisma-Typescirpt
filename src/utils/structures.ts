@@ -1,5 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { type DirectoryInformation, type FileInformation } from "../model/structure";
+import {
+    type DirectoryInformation,
+    type FileInformation,
+} from "../model/structure";
 
 const prisma = new PrismaClient();
 
