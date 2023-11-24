@@ -1,7 +1,28 @@
 import { PrismaClient } from "@prisma/client";
+import { type DirectoryInformation, type FileInformation } from "../model/structure";
 
 const prisma = new PrismaClient();
 
+export const getDirectoryInfoById = async (
+    directoryId: string,
+): Promise<DirectoryInformation | null> => {
+    const directory = await prisma.directory.findUnique({
+        where: {
+            id: directoryId,
+        },
+    });
+    return directory;
+};
+export const getFileInfoById = async (
+    fileId: string,
+): Promise<FileInformation | null> => {
+    const file = await prisma.file.findUnique({
+        where: {
+            id: fileId,
+        },
+    });
+    return file;
+};
 export const getDirectorySlugByDBChain = async (
     dirId: string,
 ): Promise<string> => {
@@ -110,4 +131,22 @@ export const getFileSlugByDBChain = async (
     } else {
         return false;
     }
+};
+
+export const isFileId = async (itemId: string): Promise<boolean> => {
+    const file = await prisma.file.findUnique({
+        where: {
+            id: itemId,
+        },
+    });
+    return file !== null;
+};
+
+export const isDirectoryId = async (itemId: string): Promise<boolean> => {
+    const directory = await prisma.directory.findUnique({
+        where: {
+            id: itemId,
+        },
+    });
+    return directory !== null;
 };

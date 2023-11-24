@@ -2,6 +2,13 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { PrismaClient } from "@prisma/client";
 import { getUser } from "../utils/user";
+import {
+    getDirectoryInfoById,
+    getFileInfoById,
+    isDirectoryId,
+    isFileId,
+} from "../utils/structures";
+import { type DirectoryInformation, type FileInformation } from "../model/structure";
 
 const prisma = new PrismaClient();
 
@@ -19,24 +26,27 @@ export const renameFileOrDirectory = async (
         const { username } = user;
 
         // initialize detector variable if it is file or directory or nothing
-        let isDir: boolean = false;
-        let isFile: boolean = false;
-        let item: null | { baseSlug: string | null };
-        console.log(itemId, username);
-        // is file or not
-        item = await prisma.file.findUnique({
-            where: {
-                id: itemId,
-                owner: username,
-            },
-            select: {
-                baseSlug: true,
-            },
-        });
-        if (item !== null) {
-            isFile = true;
-        } else {
-            // if not file, then check is directory or not
+        const isDir: boolean = await isDirectoryId(itemId);
+        const isFile: boolean = await isFileId(itemId);
+
+        // if not file and not item
+        if (!isFile && !isDir) {
+            return false;
+        }
+
+        let item: null | { baseSlug: string | null } = null;
+        if (isFile) {
+            item = await prisma.file.findUnique({
+                where: {
+                    id: itemId,
+                    owner: username,
+                },
+                select: {
+                    baseSlug: true,
+                },
+            });
+        }
+        if (isDir) {
             item = await prisma.directory.findUnique({
                 where: {
                     id: itemId,
@@ -46,15 +56,15 @@ export const renameFileOrDirectory = async (
                     baseSlug: true,
                 },
             });
-            if (item !== null) {
-                isDir = true;
-            } else {
-                // not file and not directory
-                return false;
-            }
+        }
+
+        // if item not found
+        if (item === null) {
+            return false;
         }
         // get baseSlug of item
         const { baseSlug } = item;
+
         // if baseSlug not found
         if (baseSlug === null) {
             return false;
@@ -114,6 +124,90 @@ export const renameFileOrDirectory = async (
                 `Unknown error occurred while renaming item: ${itemId}`,
             );
         }
+        return false;
+    }
+};
+
+export const trashItem = async (
+    userId: string,
+    itemId: string,
+): Promise<boolean> => {
+    try {
+        const user = await getUser(userId);
+
+        // if user not found
+        if (user === null) {
+            console.error("User not found");
+            return false;
+        }
+        // check the item is file or directory
+
+        const isFile = await isFileId(itemId);
+        const isDir = await isDirectoryId(itemId);
+
+        // it the item is not item and not directory
+        if (!isDir && !isFile) {
+            return false;
+        }
+
+        // initialize item to store file or directory information
+        let item: FileInformation | DirectoryInformation | null = null;
+
+        // store item data in item variable
+        if (isFile) {
+            item = await getFileInfoById(itemId);
+        } else if (isDir) {
+            item = await getDirectoryInfoById(itemId);
+        }
+
+        // if file or directory not found
+        if (item === null) {
+            return false;
+        }
+
+        // get baseSlug from item
+        const { baseSlug } = item;
+
+        // if baseSlug not found
+        if (baseSlug === null) {
+            return false;
+        }
+
+        // item old path (original path)
+        const baseSlugArr = baseSlug.split("/");
+        const itemOldPath = path.join("userData", ...baseSlugArr);
+
+        // item new path (trash path)
+        const trashBaseSlugArr = [...baseSlugArr];
+        trashBaseSlugArr.splice(1, 0, "__trash__");
+
+        // create directories for trash
+        if (isFile) {
+            // file name has to be removed because filename need not create a directory
+            const fileName = trashBaseSlugArr.pop();
+            // if fileName is undefined, that means the trashBaseSlugArr is empty
+            if (fileName === undefined) {
+                return false;
+            }
+            // create directories
+            await fs.mkdir(path.join("userData", ...trashBaseSlugArr), {
+                recursive: true,
+            });
+            // restore the filename after creating directory is done.
+            trashBaseSlugArr.push(fileName);
+        } else if (isDir) {
+            // create directories
+            await fs.mkdir(path.join("userData", ...trashBaseSlugArr), {
+                recursive: true,
+            });
+        }
+        const itemNewPath = path.join("userData", ...trashBaseSlugArr);
+
+        // move to trash
+        await fs.rename(itemOldPath, itemNewPath);
+        return true;
+    } catch (error) {
+        console.error(error);
         return false;
     }
 };

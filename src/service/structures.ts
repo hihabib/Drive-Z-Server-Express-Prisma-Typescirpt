@@ -4,9 +4,16 @@ import {
     type DirectoryBasicInfo,
     type DirectoryInformation,
     type FileBasicInfo,
+    type FileInformation,
 } from "../model/structure";
 import path from "path";
 import { getUser } from "../utils/user";
+import {
+    getDirectoryInfoById,
+    getFileInfoById,
+    isDirectoryId,
+    isFileId,
+} from "../utils/structures";
 
 const prisma = new PrismaClient();
 
@@ -187,20 +194,4 @@ export const createDirectory = async (
         });
     }
     return true;
-};
-
-export const getDirectoryInfo = async (
-    userId: string,
-    baseSlug: string,
-): Promise<DirectoryInformation | boolean> => {
-    console.log(baseSlug);
-    const directoryInfo = await prisma.directory.findUnique({
-        where: {
-            baseSlug,
-        },
-    });
-    if (directoryInfo === null) {
-        return false;
-    }
-    return { ...directoryInfo } satisfies DirectoryInformation;
 };

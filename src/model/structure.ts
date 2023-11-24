@@ -3,6 +3,7 @@ export interface DirectoryInformation {
     parentDirId: string | null;
     directoryName: string;
     baseSlug: string | null;
+    owner: string | null;
     directorySizeKB: number | null;
     renamedAt: Date | null;
     copiedAt: Date | null;
@@ -18,9 +19,19 @@ export interface DirectoryBasicInfo {
     baseSlug: string | null;
 }
 
-export interface RouterQuery {
-    directoryName: string;
-    parentDir?: RouterQuery;
+export interface FileInformation {
+    id: string;
+    createdAt: Date;
+    updatedAt: Date;
+    parentDirId: string | null;
+    fileName: string;
+    baseSlug: string | null;
+    owner: string | null;
+    fileSizeKB: number | null;
+    renamedAt: Date | null;
+    copiedAt: Date | null;
+    editedAt: Date | null;
+    changedAccessAt: Date | null;
 }
 
 export interface FileBasicInfo {

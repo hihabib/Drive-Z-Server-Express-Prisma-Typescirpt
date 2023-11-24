@@ -16,18 +16,6 @@ router.get(
     controller.getDirectories,
 );
 
-// get directory info
-router.get(
-    "/get-directory-info",
-    middleware.authenticate,
-    controller.getDirectoryInfo,
-);
-router.get(
-    "/get-directory-info/*",
-    middleware.authenticate,
-    controller.getDirectoryInfo,
-);
-
 // get file list
 router.get("/get-files", middleware.authenticate, controller.getFiles);
 router.get("/get-files/*", middleware.authenticate, controller.getFiles);
@@ -43,8 +31,5 @@ router.get(
     middleware.authenticate,
     controller.createDirectory,
 );
-
-// delete file and directory
-router.get("/delete/:id", middleware.authenticate, controller.deleteItem);
 
 export default router;

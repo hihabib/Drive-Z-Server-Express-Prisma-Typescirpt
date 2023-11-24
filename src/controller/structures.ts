@@ -57,32 +57,3 @@ export const createDirectory = (req: Request, res: Response): void => {
         throw new Error("Directory Creation error");
     });
 };
-
-export const getDirectoryInfo = (req: Request, res: Response): void => {
-    (async () => {
-        const { params } = req;
-        const { id: userId } = req.user!;
-        const baseSlug = params["0"] !== undefined ? "/" + params[0] : userId;
-        const result = await service.getDirectoryInfo(userId, baseSlug);
-        if (typeof result === "boolean") {
-            return res.status(404).json({
-                message: "Directory not found",
-            });
-        }
-        res.status(200).json({
-            ...result,
-        });
-    })().catch((error) => {
-        console.log(error);
-    });
-};
-
-export const deleteItem = (req: Request, res: Response): void => {
-    (async () => {
-        // const { id: userId } = req.user!;
-        // const { id: itemId } = req.params;
-        // await service.deleteItem(userId, itemId);
-    })().catch((error) => {
-        console.log(error);
-    });
-};
