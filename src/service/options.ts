@@ -214,8 +214,9 @@ export const trashItem = async (
 
         const itemNewPath = path.join("userData", ...trashBaseSlugArr);
 
-        // move to trash
+        // move to trash (in file system - files and directories)
         const isMoved = await moveItem(itemOldPath, itemNewPath);
+        // move to trash (in Database - directories)
         if (isMoved && isDir) {
             // make all child files to trashItem in DB (Recursively)
             const allChildFiles = await getAllChildFiles(itemId);
@@ -228,6 +229,11 @@ export const trashItem = async (
             for (let i = 0; i < allChildDirectories.length; i++) {
                 await trashDirectory(allChildDirectories[i], true);
             }
+        }
+
+        // move to trash (in Database - file)
+        if (isMoved && isFile) {
+            await trashFile(itemId, true);
         }
         return isMoved;
     } catch (error) {

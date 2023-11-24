@@ -31,7 +31,7 @@ export const getDirectories = async (
                 id: true,
             },
         });
-        console.log(slug, currentDirCheck);
+
         if (currentDirCheck === null) {
             return null;
         }
@@ -39,12 +39,12 @@ export const getDirectories = async (
             where: {
                 baseSlug: slug,
                 owner: user.username,
-                isTrashed: {
-                    not: true,
-                },
             },
             select: {
                 childDir: {
+                    where: {
+                        isTrashed: false,
+                    },
                     select: {
                         id: true,
                         directoryName: true,
@@ -54,7 +54,7 @@ export const getDirectories = async (
                 },
             },
         });
-
+        console.log(childDirectoriesContainer);
         if (childDirectoriesContainer[0] !== undefined) {
             return childDirectoriesContainer[0].childDir ?? [];
         } else {
