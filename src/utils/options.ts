@@ -22,12 +22,12 @@ export const moveItem = async (
     }
 };
 
-export const getAllChildDirectories = async (
+export const getAllChildDirectoriesId = async (
     dirId: string,
 ): Promise<string[]> => {
     try {
         // Initialize an empty array to store directory names
-        const dirList: string[] = [dirId];
+        const dirIdList: string[] = [dirId];
 
         // Recursive function to get the child directories
         await (async function getChild(dirId: string): Promise<void> {
@@ -61,15 +61,15 @@ export const getAllChildDirectories = async (
                 // Get the child directory's  ID
                 const childDirId = dir.childDir[i].id;
 
-                // Add the child directory's name to the dirList array
-                dirList.push(childDirId);
+                // Add the child directory's name to the dirIdList array
+                dirIdList.push(childDirId);
 
                 // Recursively call the function for the child directory
                 await getChild(childDirId);
             }
         })(dirId);
 
-        return dirList;
+        return dirIdList;
     } catch (error) {
         // Log any errors and return an empty string
         console.log(error);
@@ -77,10 +77,10 @@ export const getAllChildDirectories = async (
     }
 };
 
-export const getAllChildFiles = async (dirId: string): Promise<string[]> => {
+export const getAllChildFilesId = async (dirId: string): Promise<string[]> => {
     try {
         // Initialize an empty array to store file names
-        const fileList: string[] = [];
+        const fileIdList: string[] = [];
 
         // Recursive function to get the child files
         await (async function getChild(dirId: string): Promise<void> {
@@ -115,10 +115,10 @@ export const getAllChildFiles = async (dirId: string): Promise<string[]> => {
             // const parentDirName = file.parentDir[i].fileName;
             const { file: files, childDir: childDirs } = fileContainer;
 
-            // Add the child file's name to the fileList array
+            // Add the child file's name to the fileIdList array
             for (let i = 0; i < files.length; i++) {
                 const fileId = files[i].id;
-                fileList.push(fileId);
+                fileIdList.push(fileId);
             }
             // Recursively call the function for getting files inside child directories
             for (let i = 0; i < childDirs.length; i++) {
@@ -126,7 +126,7 @@ export const getAllChildFiles = async (dirId: string): Promise<string[]> => {
             }
         })(dirId);
 
-        return fileList;
+        return fileIdList;
     } catch (error) {
         // Log any errors and return an empty string
         console.log(error);
@@ -171,5 +171,52 @@ export const trashDirectory = async (
     } catch (error) {
         console.log(error);
         return false;
+    }
+};
+export const getFileBaseSlug = async (
+    fileId: string,
+): Promise<string | null> => {
+    try {
+        const baseSlugContainer = await prisma.file.findUnique({
+            where: {
+                id: fileId,
+            },
+            select: {
+                baseSlug: true,
+            },
+        });
+        if (baseSlugContainer === null || baseSlugContainer.baseSlug === null) {
+            return null;
+        }
+        const { baseSlug } = baseSlugContainer;
+
+        return baseSlug;
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+};
+
+export const getDirectoryBaseSlug = async (
+    directoryId: string,
+): Promise<string | null> => {
+    try {
+        const baseSlugContainer = await prisma.directory.findUnique({
+            where: {
+                id: directoryId,
+            },
+            select: {
+                baseSlug: true,
+            },
+        });
+        if (baseSlugContainer === null || baseSlugContainer.baseSlug === null) {
+            return null;
+        }
+        const { baseSlug } = baseSlugContainer;
+
+        return baseSlug;
+    } catch (error) {
+        console.error(error);
+        return null;
     }
 };

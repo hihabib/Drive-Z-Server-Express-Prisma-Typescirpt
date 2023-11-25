@@ -54,7 +54,7 @@ export const getDirectories = async (
                 },
             },
         });
-        console.log(childDirectoriesContainer);
+
         if (childDirectoriesContainer[0] !== undefined) {
             return childDirectoriesContainer[0].childDir ?? [];
         } else {
@@ -82,12 +82,14 @@ export const getFiles = async (
             where: {
                 baseSlug,
                 owner: user.username,
-                isTrashed: {
-                    not: true,
-                },
             },
             select: {
                 file: {
+                    where: {
+                        isTrashed: {
+                            not: true,
+                        },
+                    },
                     select: {
                         id: true,
                         fileName: true,

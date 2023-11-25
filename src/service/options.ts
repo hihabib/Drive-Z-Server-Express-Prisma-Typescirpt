@@ -13,8 +13,10 @@ import {
     type FileInformation,
 } from "../model/structure";
 import {
-    getAllChildDirectories,
-    getAllChildFiles,
+    getAllChildDirectoriesId,
+    getAllChildFilesId,
+    getDirectoryBaseSlug,
+    getFileBaseSlug,
     moveItem,
     trashDirectory,
     trashFile,
@@ -79,8 +81,9 @@ export const renameFileOrDirectory = async (
         if (baseSlug === null) {
             return false;
         }
+        const oldBaseSlug = baseSlug;
 
-        const baseSlugArr = baseSlug.split("/");
+        const baseSlugArr = oldBaseSlug.split("/");
         const filePath = path.join("userData", ...baseSlugArr);
         // Check if the provided path exists
         if (!fs.existsSync(filePath)) {
@@ -117,6 +120,71 @@ export const renameFileOrDirectory = async (
             fs.removeSync(filePath);
             // update directory info in DB
             await prisma.directory.update(updateObj);
+
+            // update baseSlugs of all children (files + directories)
+
+            // update baseSlugs of all children files
+            const allChildFilesId = await getAllChildFilesId(itemId);
+            for (let i = 0; i < allChildFilesId.length; i++) {
+                const fileId = allChildFilesId[i];
+                const childFileBaseSlug = await getFileBaseSlug(fileId);
+                if (childFileBaseSlug === null) {
+                    console.log(`baseURL of ${fileId} - file is null`);
+                    return false;
+                }
+
+                // split file's baseSlug with the oldBaseSlug of the directory which is renaming
+                const childFileBaseSlugArr =
+                    childFileBaseSlug.split(oldBaseSlug);
+                // remove old base slug and add new slug in the array
+                childFileBaseSlugArr.splice(0, 1, newBaseSlug);
+                // construct new baseSlug for child file.
+                const newChildFileBaseSlug = childFileBaseSlugArr.join("");
+
+                // update file
+                await prisma.file.update({
+                    where: {
+                        id: fileId,
+                    },
+                    data: {
+                        baseSlug: newChildFileBaseSlug,
+                    },
+                });
+            }
+
+            // update baseSlugs of all children directories
+            const allChildDirectoriesId =
+                await getAllChildDirectoriesId(itemId);
+            for (let i = 0; i < allChildDirectoriesId.length; i++) {
+                const directoryId = allChildDirectoriesId[i];
+                const childDirectoryBaseSlug =
+                    await getDirectoryBaseSlug(directoryId);
+                if (childDirectoryBaseSlug === null) {
+                    console.log(
+                        `baseURL of ${directoryId} - directory is null`,
+                    );
+                    return false;
+                }
+
+                // split directory's baseSlug with the oldBaseSlug of the directory which is renaming
+                const childDirectoryBaseSlugArr =
+                    childDirectoryBaseSlug.split(oldBaseSlug);
+                // remove old base slug and add new slug in the array
+                childDirectoryBaseSlugArr.splice(0, 1, newBaseSlug);
+                // construct new baseSlug for child directory.
+                const newChildDirectoryBaseSlug =
+                    childDirectoryBaseSlugArr.join("");
+
+                // update directory
+                await prisma.directory.update({
+                    where: {
+                        id: directoryId,
+                    },
+                    data: {
+                        baseSlug: newChildDirectoryBaseSlug,
+                    },
+                });
+            }
         } else if (isFile) {
             // rename file
             fs.renameSync(filePath, newPath);
@@ -219,13 +287,13 @@ export const trashItem = async (
         // move to trash (in Database - directories)
         if (isMoved && isDir) {
             // make all child files to trashItem in DB (Recursively)
-            const allChildFiles = await getAllChildFiles(itemId);
+            const allChildFiles = await getAllChildFilesId(itemId);
             for (let i = 0; i < allChildFiles.length; i++) {
                 await trashFile(allChildFiles[i], true);
             }
 
             // make all child directories to trashItem in DB (Recursively)
-            const allChildDirectories = await getAllChildDirectories(itemId);
+            const allChildDirectories = await getAllChildDirectoriesId(itemId);
             for (let i = 0; i < allChildDirectories.length; i++) {
                 await trashDirectory(allChildDirectories[i], true);
             }
