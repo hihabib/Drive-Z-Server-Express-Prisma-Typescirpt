@@ -42,16 +42,14 @@ export const createDirectory = (req: Request, res: Response): void => {
         }
         const { "0": directoryPath = userId } = req.params;
         const directoriesName = directoryPath.split("/");
-        const isCreated = await service.createDirectory(
+        const createdDir = await service.createDirectory(
             userId,
             ...directoriesName,
         );
-        if (!isCreated) {
-            throw new Error("Directory creation failed");
-        }
-        res.status(201).json({
-            message: "Directory created",
-        });
+        // if (!isCreated) {
+        //     throw new Error("Directory creation failed");
+        // }
+        res.status(201).json(createdDir);
     })().catch((error) => {
         console.log(error);
         throw new Error("Directory Creation error");

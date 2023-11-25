@@ -11,7 +11,7 @@ const saveUser = async ({
     username,
     email,
     password,
-    gander,
+    gander = "male",
     mobile,
     picture,
     country,

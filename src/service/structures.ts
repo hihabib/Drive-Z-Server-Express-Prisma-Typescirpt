@@ -118,7 +118,7 @@ export const getFiles = async (
 export const createDirectory = async (
     userId: string,
     ...foldersName: string[]
-): Promise<boolean> => {
+): Promise<{ id: string }> => {
     // get directory creator's username
     const directoryCreator = await prisma.user.findUnique({
         where: {
@@ -170,10 +170,11 @@ export const createDirectory = async (
             },
         });
     }
+    let newCreatedDirectory: { id: string };
     if (parentDirectoryId !== null) {
         // create directory with the reference of parent directory
         const directoryName = foldersName[foldersName.length - 1];
-        await prisma.directory.create({
+        newCreatedDirectory = await prisma.directory.create({
             data: {
                 directoryName,
                 baseSlug,
@@ -184,18 +185,24 @@ export const createDirectory = async (
                     },
                 },
             },
+            select: {
+                id: true,
+            },
         });
     } else {
         // create directory without parent directory
         // useful for making root directory at the time of user signup
         const directoryName = userId;
-        await prisma.directory.create({
+        newCreatedDirectory = await prisma.directory.create({
             data: {
                 directoryName,
                 baseSlug,
                 owner: directoryCreator.username,
             },
+            select: {
+                id: true,
+            },
         });
     }
-    return true;
+    return newCreatedDirectory;
 };
