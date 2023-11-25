@@ -98,9 +98,13 @@ export const renameFileOrDirectory = async (
         const newPath = path.join(parentDirectory, newName);
 
         // remove item's old name from baseSlugArr and push new name to construct newBaseSlug
+        console.log("before pop", baseSlugArr);
         baseSlugArr.pop();
+        console.log("after pop, before push", baseSlugArr);
         baseSlugArr.push(newName);
+        console.log("after push", baseSlugArr);
         const newBaseSlug = baseSlugArr.join("/");
+        console.log("newBaseSlug after joining /", newBaseSlug);
 
         const updateObj = {
             where: {
@@ -155,6 +159,9 @@ export const renameFileOrDirectory = async (
             // update baseSlugs of all children directories
             const allChildDirectoriesId =
                 await getAllChildDirectoriesId(itemId);
+            // remove current editing directory from allChildDirectoriesId as it is updated above. the current directoryId is in first position in the allChildDirectoriesId array.
+            allChildDirectoriesId.shift();
+
             for (let i = 0; i < allChildDirectoriesId.length; i++) {
                 const directoryId = allChildDirectoriesId[i];
                 const childDirectoryBaseSlug =
