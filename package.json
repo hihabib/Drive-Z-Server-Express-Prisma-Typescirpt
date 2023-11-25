@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npx tsc",
-    "prestart": "npm run build",
+    "build": "npm run build && npx tsc",
     "start": "node ./dist/index.js",
     "predev": "npm run build",
     "dev": "concurrently \"npx tsc -w\" \"nodemon ./dist/index.js\"",
